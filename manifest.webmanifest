@@ -1,9 +1,24 @@
 {
   "name": "Grocery Price Finder",
   "short_name": "Grocery Price",
-  "start_url": "./index.html",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f3f7f4",
   "theme_color": "#176b45",
-  "description": "Shared grocery price finder with Firebase cloud sync."
+  "description": "Shared grocery price finder with Firebase cloud sync.",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }
