@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ta">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#176b45"><title>Grocery Price Finder</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans Tamil",sans-serif;color:#17251d;background:#f3f7f4}
+*{box-sizing:border-box}body{margin:0}.app{max-width:650px;margin:auto;min-height:100vh;padding:16px 14px 32px}
+header{background:#176b45;color:white;padding:20px;border-radius:18px;margin-bottom:16px}
+h1{font-size:23px;margin:0 0 4px}.sub{opacity:.88;font-size:13px}
+.tabs{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+button{border:0;border-radius:12px;padding:12px 14px;font-size:15px;font-weight:650;background:#176b45;color:white;cursor:pointer}
+button.secondary{background:#e2eee7;color:#175638}button.danger{background:#a52d2d}
+input,select{width:100%;padding:13px;border:1px solid #cbd8cf;border-radius:11px;font-size:16px;background:white;color:#17251d}
+label{display:block;font-size:13px;font-weight:650;margin:10px 0 5px}
+.searchrow{display:flex;gap:8px}.searchrow input{flex:1;min-width:0}.mic{min-width:54px;font-size:20px}
+.card{background:white;border:1px solid #e0e9e2;border-radius:15px;padding:14px;margin:10px 0;box-shadow:0 2px 8px #163d2510}
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px}.name{font-weight:750;font-size:17px}.meta{color:#68766d;font-size:13px}.price{font-weight:800;color:#176b45;font-size:23px;white-space:nowrap}
+.actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.actions button{padding:8px 11px;font-size:13px}
+form,.panel{background:white;padding:15px;border-radius:15px;border:1px solid #e0e9e2}
+.hidden{display:none!important}.muted{color:#68766d;font-size:13px}.empty{text-align:center;padding:24px;color:#68766d}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#17251d;color:white;padding:11px 16px;border-radius:12px;display:none;max-width:90%;z-index:5}
+.status{font-size:13px;padding:9px 11px;border-radius:10px;background:#e8f3ec;margin:8px 0}.status.off{background:#fff1d9;color:#78500a}
+</style></head>
+<body><main class="app">
+<header><h1>🛒 மளிகை விலை தேடல்</h1><div class="sub">Grocery Price Finder · Cloud Sync · தமிழ் + English</div></header>
+
+<section id="loginPanel" class="panel">
+<h3>Login / உள்நுழைவு</h3>
+<p class="muted">மூன்று மொபைல்களிலும் இதே Email மற்றும் Password பயன்படுத்தவும்.</p>
+<label>Email</label><input id="email" type="email" autocomplete="username" placeholder="your-email@example.com">
+<label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password">
+<div class="actions"><button id="loginBtn">Login</button><button class="secondary" id="signupBtn">Create account</button></div>
+<p class="muted">முதலில் ஒருமுறை கணக்கு உருவாக்கவும். பின்னர் மற்ற மொபைல்களில் அதே கணக்கில் Login செய்யவும்.</p>
+</section>
+
+<section id="mainPanel" class="hidden">
+<div class="status" id="syncStatus">Cloud status: Connecting...</div>
+<div class="muted" id="userLine"></div>
+<div class="tabs">
+<button id="tabSearch">🔎 விலை தேடல்</button><button class="secondary" id="tabAdd">＋ பொருள் சேர்க்க</button><button class="secondary" id="tabBackup">↕ Backup</button><button class="secondary" id="logoutBtn">Logout</button>
+</div>
+<section id="searchPanel">
+<label for="query">பொருளின் பெயர் / Product name</label>
+<div class="searchrow"><input id="query" placeholder="சர்க்கரை / Sugar..." autocomplete="off"><button class="mic" id="voice" title="Voice search">🎤</button></div>
+<label for="voiceLang">குரல் மொழி / Voice language</label><select id="voiceLang"><option value="ta-IN">தமிழ் / Tamil</option><option value="en-IN">English (India)</option></select>
+<div class="muted" id="voiceStatus">மைக் அழுத்தி தேர்ந்தெடுத்த மொழியில் பேசுங்கள்.</div><div id="results"></div>
+</section>
+<section id="addPanel" class="hidden">
+<h3 id="formTitle">புதிய பொருள் சேர்க்க / Add product</h3>
+<form id="productForm"><input type="hidden" id="editId">
+<label>பொருளின் பெயர் / Product name</label><input id="pName" required placeholder="சர்க்கரை / Sugar">
+<label>அளவு / Unit</label><select id="pUnit"><option>1 kg</option><option>500 g</option><option>1 litre</option><option>500 ml</option><option>1 packet</option><option>1 piece</option><option>1 dozen</option><option>Other</option></select>
+<label>விலை / Price (₹)</label><input id="pPrice" type="number" min="0" step="0.01" required>
+<label>பிராண்ட் / Brand (விருப்பம்)</label><input id="pBrand" placeholder="உதா: Aachi">
+<div class="actions"><button type="submit">சேமிக்க / Save</button><button type="button" class="secondary" id="cancelEdit">ரத்து / Cancel</button></div>
+</form></section>
+<section id="backupPanel" class="hidden">
+<div class="card"><h3>Backup / Restore</h3><p class="muted">Cloud-ல் தரவு சேமிக்கப்படும். கூடுதல் பாதுகாப்புக்கு JSON backup பதிவிறக்கவும்.</p>
+<button id="exportBtn">⬇ Backup Download</button><label for="importFile">Restore JSON backup</label><input type="file" id="importFile" accept=".json,application/json">
+<p class="muted">Restore செய்தால் இந்தக் கடையின் தற்போதைய பட்டியல் backup கோப்பால் மாற்றப்படும்.</p></div>
+<div class="card"><b id="count">0</b> பொருட்கள் சேமிக்கப்பட்டுள்ளன</div>
+</section></section>
+<div id="toast"></div>
+</main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, enableIndexedDbPersistence, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { firebaseConfig, SHOP_ID } from "./firebase-config.js";
+
+const $=id=>document.getElementById(id);
+const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app);
+const shopProducts=collection(db,"shops",SHOP_ID,"products");
+let products=[], unsubscribe=null, persistenceReady=false;
+try { await enableIndexedDbPersistence(db); persistenceReady=true; } catch(e) { console.info("Persistence status",e.code); }
+function toast(s){$('toast').textContent=s;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2400)}
+function show(panel){['searchPanel','addPanel','backupPanel'].forEach(x=>$(x).classList.toggle('hidden',x!==panel))}
+function status(msg,off=false){$('syncStatus').textContent=msg;$('syncStatus').classList.toggle('off',off)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){
+ const q=$('query').value.trim().toLocaleLowerCase();
+ const found=products.filter(p=>(p.name+' '+(p.brand||'')+' '+p.unit).toLocaleLowerCase().includes(q));
+ $('results').innerHTML=found.length?found.map(p=>`<article class="card"><div class="item"><div><div class="name">${esc(p.name)}</div><div class="meta">${esc(p.brand||'')}${p.brand?' · ':''}${esc(p.unit)}</div></div><div class="price">₹${Number(p.price).toLocaleString('en-IN',{maximumFractionDigits:2})}</div></div><div class="actions"><button class="secondary" data-edit="${esc(p.id)}">✎ விலை மாற்று / Edit</button><button class="danger" data-delete="${esc(p.id)}">நீக்கு / Delete</button></div></article>`).join(''):'<div class="empty">பொருள் கிடைக்கவில்லை / No product found.</div>';
+ $('results').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(b.dataset.edit));
+ $('results').querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{if(confirm('இந்தப் பொருளை நீக்க வேண்டுமா?'))try{await deleteDoc(doc(shopProducts,b.dataset.delete));toast('நீக்க கோரிக்கை அனுப்பப்பட்டது')}catch(e){toast('Delete error: '+e.message)}});
+ $('count').textContent=products.length;
+}
+function listen(){
+ if(unsubscribe)unsubscribe();
+ status("Cloud Sync: Connecting...");
+ unsubscribe=onSnapshot(shopProducts,{includeMetadataChanges:true},snap=>{
+   products=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.name.localeCompare(b.name));
+   render();
+   const pending=snap.metadata.hasPendingWrites;
+   const cached=snap.metadata.fromCache;
+   status(pending?"Sync pending · மாற்றங்கள் இணையம் வந்ததும் பதிவேறும்":cached?"Offline · சேமித்த தரவு":"Cloud Synced ✓"+(persistenceReady?" · Offline cache ready":""));
+ },err=>status("Sync error: "+err.message,true));
+}
+$('loginBtn').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value.trim(),$('password').value);toast('Login வெற்றி')}catch(e){toast(authError(e))}};
+$('signupBtn').onclick=async()=>{try{await createUserWithEmailAndPassword(auth,$('email').value.trim(),$('password').value);toast('கணக்கு உருவாக்கப்பட்டது')}catch(e){toast(authError(e))}};
+function authError(e){return e.code==='auth/email-already-in-use'?'இந்த Email ஏற்கனவே உள்ளது. Login செய்யவும்.':e.code==='auth/weak-password'?'Password குறைந்தது 6 எழுத்துகள் இருக்க வேண்டும்.':e.message}
+$('logoutBtn').onclick=()=>signOut(auth);
+onAuthStateChanged(auth,user=>{
+ $('loginPanel').classList.toggle('hidden',!!user);$('mainPanel').classList.toggle('hidden',!user);
+ if(user){$('userLine').textContent='Login: '+user.email+' · Shop: '+SHOP_ID;listen()}
+ else{if(unsubscribe)unsubscribe();unsubscribe=null;products=[]}
+});
+$('tabSearch').onclick=()=>show('searchPanel');$('tabAdd').onclick=()=>{resetForm();show('addPanel')};$('tabBackup').onclick=()=>show('backupPanel');
+$('query').addEventListener('input',render);
+function resetForm(){$('productForm').reset();$('editId').value='';$('formTitle').textContent='புதிய பொருள் சேர்க்க / Add product'}
+function edit(id){let p=products.find(x=>x.id===id);if(!p)return;show('addPanel');$('editId').value=p.id;$('pName').value=p.name;$('pUnit').value=p.unit;$('pPrice').value=p.price;$('pBrand').value=p.brand||'';$('formTitle').textContent='பொருள் விவரம் மாற்று / Edit product'}
+$('cancelEdit').onclick=resetForm;
+$('productForm').onsubmit=async e=>{e.preventDefault();let id=$('editId').value||crypto.randomUUID();let p={name:$('pName').value.trim(),unit:$('pUnit').value,price:Number($('pPrice').value),brand:$('pBrand').value.trim(),updatedAt:serverTimestamp()};if(!p.name||!Number.isFinite(p.price)||p.price<0)return toast('சரியான விவரங்களை உள்ளிடவும்');try{await setDoc(doc(shopProducts,id),p);toast('Cloud-க்கு சேமிக்கப்பட்டது');resetForm();show('searchPanel');$('query').value=p.name;render()}catch(e){toast('Save error: '+e.message)}};
+$('exportBtn').onclick=()=>{let blob=new Blob([JSON.stringify({app:'Grocery Price Finder',version:2,exportedAt:new Date().toISOString(),products},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grocery-price-backup.json';a.click();URL.revokeObjectURL(a.href)};
+$('importFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let d=JSON.parse(await f.text()),arr=Array.isArray(d)?d:d.products;if(!Array.isArray(arr)||!arr.every(p=>p.name&&p.unit!==undefined&&Number.isFinite(Number(p.price))))throw Error('Invalid file');if(confirm('Cloud பட்டியலை இந்த backup-ஆல் மாற்றவா?')){const batch=writeBatch(db);products.forEach(p=>batch.delete(doc(shopProducts,p.id)));arr.forEach(p=>{let id=String(p.id||crypto.randomUUID());batch.set(doc(shopProducts,id),{name:String(p.name),unit:String(p.unit),price:Number(p.price),brand:String(p.brand||''),updatedAt:serverTimestamp()})});await batch.commit();toast('Restore கோரிக்கை அனுப்பப்பட்டது')}}catch(err){toast('Restore error: '+err.message)}e.target.value=''};
+const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
+$('voice').onclick=()=>{if(!Speech){$('voiceStatus').textContent='இந்த browser-ல் voice search ஆதரவு இல்லை. Chrome-ல் முயற்சிக்கவும்.';return}let r=new Speech();r.lang=$('voiceLang').value;r.interimResults=false;r.maxAlternatives=3;$('voiceStatus').textContent='கேட்கிறேன்... பேசுங்கள்';r.onresult=e=>{let spoken=e.results[0][0].transcript;$('query').value=spoken;$('voiceStatus').textContent='கண்டறிந்தது: '+spoken;render()};r.onerror=e=>$('voiceStatus').textContent='குரல் தேடல் பிழை: '+e.error;r.start()};
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script></body></html>

@@ -1,0 +1,9 @@
+{
+  "name": "Grocery Price Finder",
+  "short_name": "Grocery Price",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f7f4",
+  "theme_color": "#176b45",
+  "description": "Shared grocery price finder with Firebase cloud sync."
+}

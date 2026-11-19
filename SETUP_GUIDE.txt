@@ -1,0 +1,24 @@
+GROCERY PRICE FINDER — GITHUB UPLOAD PACKAGE
+
+This is a Progressive Web App (PWA) source package, NOT a compiled APK.
+It uses the Firebase project already created by you and the same shop ID on all phones.
+
+FILES TO UPLOAD TO YOUR GITHUB REPOSITORY ROOT:
+- index.html
+- firebase-config.js
+- manifest.webmanifest
+- sw.js
+- firestore.rules (reference copy; Firebase Rules were already published separately)
+- SETUP_GUIDE.txt
+
+IMPORTANT:
+1. Upload the files themselves to the repository root, not just this ZIP archive.
+2. Firebase config is already filled in for project grocery-price-finder-e7915.
+3. Firestore rules are restricted to the signed-in email dineshsugu12@gmail.com and path shops/my-grocery-shop/products.
+4. The app must be hosted over HTTPS; opening index.html as a local file will not work for Firebase login/service worker.
+5. Firebase Authentication Email/Password is enabled. The shared account has already been created in Firebase Authentication.
+6. After hosting, sign in on all three phones with the same email/password.
+7. Keep the shop ID exactly my-grocery-shop on all phones.
+8. Do not publish passwords or other private credentials. Firebase web config is client-side configuration, not a password.
+9. First login and initial data load require internet. Previously cached data may be available offline.
+10. A native Android APK is a separate later build step; this package is the installable PWA source.
