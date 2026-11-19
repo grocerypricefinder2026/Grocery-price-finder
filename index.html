@@ -74,6 +74,7 @@ const $=id=>document.getElementById(id);
 const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app);
 const shopProducts=collection(db,"shops",SHOP_ID,"products");
 let products=[], unsubscribe=null, persistenceReady=false;
+let voiceSearchOnly=false;
 try { await enableIndexedDbPersistence(db); persistenceReady=true; } catch(e) { console.info("Persistence status",e.code); }
 function toast(s){$('toast').textContent=s;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2400)}
 function show(panel){['searchPanel','addPanel','backupPanel'].forEach(x=>$(x).classList.toggle('hidden',x!==panel))}
@@ -81,7 +82,20 @@ function status(msg,off=false){$('syncStatus').textContent=msg;$('syncStatus').c
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function render(){
  const q=$('query').value.trim().toLocaleLowerCase();
- const found=products.filter(p=>(p.name+' '+(p.brand||'')+' '+p.unit).toLocaleLowerCase().includes(q));
+ const normalize = s => String(s || '').normalize('NFC').trim().toLocaleLowerCase();
+
+let found;
+
+if (voiceSearchOnly && q) {
+  const exact = products.filter(p => normalize(p.name) === normalize(q));
+  found = exact.length
+    ? exact
+    : products.filter(p => normalize(p.name).includes(normalize(q)));
+} else {
+  found = products.filter(p =>
+    normalize(p.name+' '+(p.brand||'')+' '+p.unit).includes(q)
+  );
+}
  $('results').innerHTML=found.length?found.map(p=>`<article class="card"><div class="item"><div><div class="name">${esc(p.name)}</div><div class="meta">${esc(p.brand||'')}${p.brand?' · ':''}${esc(p.unit)}</div></div><div class="price">₹${Number(p.price).toLocaleString('en-IN',{maximumFractionDigits:2})}</div></div><div class="actions"><button class="secondary" data-edit="${esc(p.id)}">✎ விலை மாற்று / Edit</button><button class="danger" data-delete="${esc(p.id)}">நீக்கு / Delete</button></div></article>`).join(''):'<div class="empty">பொருள் கிடைக்கவில்லை / No product found.</div>';
  $('results').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(b.dataset.edit));
  $('results').querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{if(confirm('இந்தப் பொருளை நீக்க வேண்டுமா?'))try{await deleteDoc(doc(shopProducts,b.dataset.delete));toast('நீக்க கோரிக்கை அனுப்பப்பட்டது')}catch(e){toast('Delete error: '+e.message)}});
@@ -108,7 +122,10 @@ onAuthStateChanged(auth,user=>{
  else{if(unsubscribe)unsubscribe();unsubscribe=null;products=[]}
 });
 $('tabSearch').onclick=()=>show('searchPanel');$('tabAdd').onclick=()=>{resetForm();show('addPanel')};$('tabBackup').onclick=()=>show('backupPanel');
-$('query').addEventListener('input',render);
+$('query').addEventListener('input',()=>{
+  voiceSearchOnly=false;
+  render();
+});
 function resetForm(){$('productForm').reset();$('editId').value='';$('formTitle').textContent='புதிய பொருள் சேர்க்க / Add product'}
 function edit(id){let p=products.find(x=>x.id===id);if(!p)return;show('addPanel');$('editId').value=p.id;$('pName').value=p.name;$('pUnit').value=p.unit;$('pPrice').value=p.price;$('pBrand').value=p.brand||'';$('formTitle').textContent='பொருள் விவரம் மாற்று / Edit product'}
 $('cancelEdit').onclick=resetForm;
